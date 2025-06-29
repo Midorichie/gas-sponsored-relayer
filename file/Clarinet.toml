@@ -1,0 +1,69 @@
+[project]
+name = "gas-sponsored-relayer"
+version = "2.0.0"
+description = "Enhanced gas-sponsored transaction relayer with security improvements and fee management"
+authors = ["Midorichie <hamsohood@gmail.com>"]
+license = "MIT"
+keywords = ["stacks", "clarity", "relayer", "gas", "sponsored"]
+
+[contracts.relayer]
+path = "contracts/relayer.clar"
+clarity_version = 2
+epoch = "2.5"
+
+[contracts.fee-manager]
+path = "contracts/fee-manager.clar"
+clarity_version = 2
+epoch = "2.5"
+
+[repl]
+costs_version = 2
+parser_version = 2
+
+[repl.analysis]
+passes = ["check_checker"]
+
+[repl.analysis.check_checker]
+strict = true
+trusted_sender = false
+trusted_caller = false
+callee_filter = true
+
+# Test accounts for development
+[[repl.accounts]]
+name = "deployer"
+address = "ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM"
+balance = 100000000000000
+
+[[repl.accounts]]
+name = "sponsor1"
+address = "ST1SJ3DTE5DN7X54YDH5D64R3BCB6A2AG2ZQ8YPD5"
+balance = 100000000000000
+
+[[repl.accounts]]
+name = "sponsor2"
+address = "ST2CY5V39NHDPWSXMW9QDT3HC3GD6Q6XX4CFRK9AG"
+balance = 100000000000000
+
+[[repl.accounts]]
+name = "user1"
+address = "ST2JHG361ZXG51QTKY2NQCVBPPRRE2KZB1HR05NNC"
+balance = 100000000000000
+
+[[repl.accounts]]
+name = "user2"
+address = "ST2NEB84ASENDXKYGJPQW86YXQCEFEX2ZQPG87ND"
+balance = 100000000000000
+
+# Development settings
+[project.requirements]
+clarinet = ">=1.7.0"
+
+# Network configurations
+[project.network.testnet]
+stacks_node_rpc_address = "https://stacks-node-api.testnet.stacks.co"
+bitcoin_node_rpc_address = "https://bitcoin.testnet.stacks.co"
+
+[project.network.mainnet]
+stacks_node_rpc_address = "https://stacks-node-api.mainnet.stacks.co"
+bitcoin_node_rpc_address = "https://bitcoin.mainnet.stacks.co"
