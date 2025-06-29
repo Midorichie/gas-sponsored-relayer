@@ -1,129 +1,210 @@
 # Gas Sponsored Relayer - Phase 2
 
-An enhanced Clarity smart contract system for sponsored transaction relaying on the Stacks blockchain with improved security, fee management, and additional functionality.
+An enhanced Clarity smart contract system for sponsored transaction relaying on the Stacks blockchain with improved security, fee management, and comprehensive transaction processing capabilities.
 
 ## Overview
 
-The Gas Sponsored Relayer allows sponsors to pay for users' transaction fees, enabling gasless transactions for end users. Phase 2 introduces significant improvements including bug fixes, security enhancements, and a comprehensive fee management system.
+The Gas Sponsored Relayer allows sponsors to pay for users' transaction fees, enabling gasless transactions for end users. Phase 2 introduces a complete rewrite with a transaction processor architecture, enhanced security features, and a comprehensive fee management system.
 
 ## Key Features
 
 ### Core Functionality
-- **Sponsored Transactions**: Sponsors can pay gas fees for users
-- **Signature Verification**: Cryptographic verification of user intent
-- **Nonce Management**: Prevents replay attacks
-- **Transaction Expiry**: Time-limited transactions for security
-- **Balance Management**: Sponsor deposit/withdrawal system
+- **Transaction Processing**: Centralized transaction processing with sponsored fee handling
+- **Contract Whitelisting**: Only approved contracts can be called through the relayer
+- **Batch Processing**: Process multiple transactions in a single batch for efficiency
+- **Fee Integration**: Dynamic fee calculation and collection through the fee manager
+- **Admin Controls**: Comprehensive administrative functions for system management
 
-### New in Phase 2
-- **Enhanced Security**: Contract whitelisting and improved access controls
-- **Fee Management**: Dynamic fee structure with the fee-manager contract
-- **Event Logging**: Comprehensive transaction event tracking
-- **Refund System**: Automatic refunds for expired transactions
-- **Better Error Handling**: Comprehensive error constants and validation
+### Security Features
+- **Access Control**: Only authorized relayers can process transactions
+- **Transaction Deduplication**: Prevents replay attacks with transaction hash tracking
+- **Contract Validation**: Validates contract addresses and function calls
+- **Parameter Validation**: Comprehensive input validation for all operations
+- **Status Tracking**: Complete transaction lifecycle tracking
 
-## Contracts
+### Analytics & Monitoring
+- **Transaction Analytics**: Track success/failure rates and gas usage
+- **Batch Analytics**: Monitor batch processing performance
+- **Fee Analytics**: Track fee collection and distribution
+- **Contract Usage**: Monitor which contracts are being used most
 
-### 1. Relayer Contract (`relayer.clar`)
+## Architecture
 
-The main contract handling sponsored transactions.
+The system consists of three main contracts:
+
+### 1. Transaction Processor Contract (`transaction-processor.clar`)
+
+The core contract that handles all sponsored transaction processing.
 
 #### Key Functions
 
-**Public Functions:**
-- `submit-sponsored-call`: Submit a sponsored transaction with signature verification
-- `mark-paid`: Mark a transaction as paid (sponsor only)
-- `refund-expired`: Refund expired transactions
-- `deposit-sponsor-balance`: Deposit STX for sponsoring
-- `withdraw-sponsor-balance`: Withdraw unused sponsor balance
-- `add-allowed-contract`: Add contract to whitelist (admin only)
-- `remove-allowed-contract`: Remove contract from whitelist (admin only)
+**Admin Functions:**
+- `set-relayer-contract`: Configure the authorized relayer contract
+- `set-fee-manager-contract`: Configure the fee manager contract
+- `add-supported-contract`: Add a contract to the whitelist
+- `toggle-contract-support`: Enable/disable contract support
 
-**Read-Only Functions:**
-- `get-sponsored-info`: Get transaction details
-- `get-user-nonce`: Get user's current nonce
-- `get-sponsor-balance`: Get sponsor's available balance
-- `is-contract-allowed`: Check if contract is whitelisted
-- `get-transaction-event`: Get event details
+**Processing Functions:**
+- `process-sponsored-transaction`: Process a single sponsored transaction
+- `process-batch-transactions`: Process multiple transactions in a batch
+
+**Query Functions:**
+- `get-transaction-status`: Get detailed transaction information
+- `get-batch-info`: Get batch processing information
+- `get-supported-contract`: Check contract support status
+- `get-processing-stats`: Get overall system statistics
 
 ### 2. Fee Manager Contract (`fee-manager.clar`)
 
-Manages dynamic fee structures for the relayer system.
+Manages dynamic fee structures and fee collection.
 
 #### Key Functions
 
-**Public Functions:**
+**Configuration:**
 - `set-contract-fee`: Configure fees for specific contracts
 - `toggle-contract-fee`: Enable/disable fees for contracts
-- `calculate-fee`: Calculate fee for a transaction
-- `collect-fee`: Record fee collection
+- `collect-fee`: Process fee collection for transactions
 
-**Read-Only Functions:**
+**Analytics:**
 - `get-contract-fee`: Get fee configuration
-- `preview-fee`: Preview fee calculation
 - `get-total-fees-collected`: Get total fees collected
-- `get-contract-stats`: Get analytics for a contract
+- `get-contract-stats`: Get detailed analytics for contracts
 
-## Security Improvements
+### 3. Relayer Contract (`relayer.clar`)
 
-### Bug Fixes from Phase 1
-1. **Fixed Signature Verification**: Proper preimage construction using `to-consensus-buff?`
-2. **Fixed Buffer Size**: Changed from `buff 34` to `buff 32` for SHA256 hashes
-3. **Fixed String Types**: Changed from `buff 34` to `string-ascii 128` for contract names
+Handles user interaction, signature verification, and transaction submission.
 
-### Security Enhancements
-1. **Contract Whitelisting**: Only approved contracts can be called
-2. **Access Controls**: Proper authorization checks
-3. **Balance Management**: Prevents overspending by sponsors
-4. **Transaction Expiry**: Time-limited transactions
-5. **Reentrancy Protection**: Balance updates before transfers
-6. **Input Validation**: Comprehensive parameter validation
+#### Key Functions
+
+**User Functions:**
+- `submit-sponsored-call`: Submit a transaction for sponsored processing
+- `get-user-nonce`: Get current nonce for replay protection
+- `get-sponsored-info`: Get transaction details
+
+**Sponsor Functions:**
+- `deposit-sponsor-balance`: Deposit funds for sponsoring
+- `withdraw-sponsor-balance`: Withdraw unused funds
+- `get-sponsor-balance`: Check available balance
+
+## Contract Integration Flow
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant R as Relayer Contract
+    participant TP as Transaction Processor
+    participant FM as Fee Manager
+    participant TC as Target Contract
+
+    U->>R: submit-sponsored-call()
+    R->>R: Verify signature & nonce
+    R->>TP: process-sponsored-transaction()
+    TP->>FM: collect-fee()
+    FM-->>TP: fee amount
+    TP->>TC: execute contract call
+    TC-->>TP: execution result
+    TP->>TP: Update transaction status
+    TP-->>R: processing result
+    R-->>U: transaction confirmed
+```
 
 ## Usage Examples
 
-### 1. Setting up a Sponsor
+### 1. Admin Setup
 
 ```clarity
-;; Deposit STX for sponsoring
-(contract-call? .relayer deposit-sponsor-balance u10000000) ;; 10 STX
+;; Set up the relayer contract
+(contract-call? .transaction-processor set-relayer-contract .relayer)
 
-;; Add allowed contract (admin only)
-(contract-call? .relayer add-allowed-contract "my-dapp-contract")
+;; Set up the fee manager
+(contract-call? .transaction-processor set-fee-manager-contract .fee-manager)
+
+;; Add a supported contract
+(contract-call? .transaction-processor add-supported-contract
+  'ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM.my-dapp
+  "My DApp Contract"
+  (list "transfer" "mint" "burn"))
 ```
 
-### 2. Submitting a Sponsored Transaction
+### 2. Fee Configuration
 
 ```clarity
-;; User signs a message off-chain, then sponsor submits:
-(contract-call? .relayer submit-sponsored-call
-  'ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM  ;; user
-  "my-dapp-contract"                              ;; contract
-  "transfer-tokens"                               ;; function
-  u1000000                                        ;; amount
-  u1                                              ;; nonce
-  u1640995200                                     ;; expiry timestamp
-  0x5f8b... )                                     ;; signature
-```
-
-### 3. Fee Management
-
-```clarity
-;; Set fee structure for a contract
+;; Configure fees for a contract
 (contract-call? .fee-manager set-contract-fee
-  "my-dapp-contract"
+  "My DApp Contract"
   u100000      ;; base fee (0.1 STX)
   u250         ;; percentage fee (2.5%)
-  u1000000 )   ;; max fee (1 STX)
+  u1000000)    ;; max fee (1 STX)
 
-;; Preview fee calculation
-(contract-call? .fee-manager preview-fee
-  "my-dapp-contract"
-  u5000000)    ;; transaction amount
+;; Enable fee collection
+(contract-call? .fee-manager toggle-contract-fee
+  "My DApp Contract"
+  true)
+```
+
+### 3. Processing Transactions
+
+```clarity
+;; Process a single transaction
+(contract-call? .transaction-processor process-sponsored-transaction
+  0x1234567890abcdef...  ;; transaction hash
+  'ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM  ;; user
+  'ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM.my-dapp  ;; contract
+  "transfer"  ;; function
+  u1000000    ;; amount
+  (list))     ;; parameters
+
+;; Process multiple transactions
+(contract-call? .transaction-processor process-batch-transactions
+  (list
+    {
+      tx-hash: 0x1234...,
+      user: 'ST1...,
+      contract-address: 'ST1....my-dapp,
+      function-name: "transfer",
+      amount: u1000000,
+      parameters: (list)
+    }
+    ;; ... more transactions
+  ))
+```
+
+### 4. Monitoring and Analytics
+
+```clarity
+;; Check transaction status
+(contract-call? .transaction-processor get-transaction-status 0x1234...)
+
+;; Get batch information
+(contract-call? .transaction-processor get-batch-info u1)
+
+;; Get processing statistics
+(contract-call? .transaction-processor get-processing-stats)
+
+;; Get contract analytics
+(contract-call? .fee-manager get-contract-stats "My DApp Contract")
 ```
 
 ## Error Codes
 
-### Relayer Contract
+### Transaction Processor
+- `u300`: Unauthorized access
+- `u301`: Invalid signature
+- `u302`: Expired transaction
+- `u303`: Insufficient balance
+- `u304`: Transaction execution failed
+- `u305`: Invalid contract
+- `u306`: Transaction already processed
+- `u307`: Invalid parameters
+- `u308`: Fee calculation failed
+
+### Fee Manager
+- `u200`: Unauthorized access
+- `u201`: Invalid fee configuration
+- `u202`: Contract not found
+- `u203`: Invalid percentage (exceeds maximum)
+
+### Relayer
 - `u100`: Invalid nonce or expired transaction
 - `u101`: Signature verification failed
 - `u102`: Transaction not found
@@ -133,22 +214,21 @@ Manages dynamic fee structures for the relayer system.
 - `u106`: Invalid amount
 - `u107`: Sponsor not found
 
-### Fee Manager Contract
-- `u200`: Unauthorized access
-- `u201`: Invalid fee configuration
-- `u202`: Contract not found
-- `u203`: Invalid percentage (exceeds maximum)
-
 ## Development
 
 ### Prerequisites
 - Clarinet >= 1.7.0
 - Stacks CLI
+- Node.js >= 16.0.0
 
 ### Setup
 ```bash
-# Install dependencies
-clarinet install
+# Clone the repository
+git clone <repository-url>
+cd gas-sponsored-relayer
+
+# Install Clarinet (if not already installed)
+curl --proto '=https' --tlsv1.2 -sSf https://run.clarinet.sh | sh
 
 # Check contracts
 clarinet check
@@ -156,81 +236,157 @@ clarinet check
 # Run tests
 clarinet test
 
-# Deploy to testnet
-clarinet deploy --testnet
+# Start local development environment
+clarinet integrate
 ```
 
 ### Testing
+
 ```bash
-# Run unit tests
-clarinet test tests/relayer-test.ts
+# Run all tests
+clarinet test
 
-# Run integration tests
-clarinet test tests/integration-test.ts
+# Run specific test file
+clarinet test tests/transaction-processor-test.ts
 
-# Test with console
+# Run tests with coverage
+clarinet test --coverage
+
+# Interactive testing
 clarinet console
+```
+
+### Contract Verification
+
+```bash
+# Check contract syntax
+clarinet check
+
+# Analyze contracts for potential issues
+clarinet analyze
+
+# Generate cost analysis
+clarinet costs
 ```
 
 ## Deployment
 
 ### Testnet Deployment
+
 ```bash
+# Deploy to testnet
 clarinet deploy --testnet
+
+# Verify deployment
+clarinet run --testnet "get-contract-info"
 ```
 
 ### Mainnet Deployment
+
 ```bash
+# Deploy to mainnet (ensure thorough testing first)
 clarinet deploy --mainnet
 ```
 
-## Architecture
+## Security Considerations
 
-```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   User DApp     │    │   Sponsor API   │    │  Fee Manager    │
-│                 │    │                 │    │                 │
-│ - Sign txn      │    │ - Submit calls  │    │ - Fee calc      │
-│ - Get nonce     │    │ - Manage balance│    │ - Fee tracking  │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-         │                       │                       │
-         │                       │                       │
-         └───────────────────────┼───────────────────────┘
-                                 │
-                    ┌─────────────────┐
-                    │  Relayer        │
-                    │  Contract       │
-                    │                 │
-                    │ - Verify sigs   │
-                    │ - Track nonces  │
-                    │ - Manage funds  │
-                    │ - Event logging │
-                    └─────────────────┘
-```
+### Access Control
+- Only contract owner can modify supported contracts
+- Only authorized relayers can process transactions
+- Fee manager access is restricted to authorized contracts
 
-## Future Enhancements
+### Transaction Security
+- All transactions are tracked to prevent replays
+- Contract whitelisting prevents unauthorized contract calls
+- Parameter validation prevents malicious inputs
 
-- [ ] Multi-signature sponsor approvals
-- [ ] Batch transaction processing
-- [ ] Cross-chain relaying support
+### Economic Security
+- Fee collection prevents spam attacks
+- Sponsor balance management prevents overspending
+- Batch processing limits prevent resource exhaustion
+
+## Performance Characteristics
+
+### Transaction Processing
+- **Single Transaction**: ~1000 gas units
+- **Batch Processing**: Scales linearly with batch size
+- **Maximum Batch Size**: 50 transactions
+
+### Storage Efficiency
+- **Transaction Records**: ~200 bytes per transaction
+- **Batch Records**: ~150 bytes per batch
+- **Contract Records**: ~300 bytes per supported contract
+
+## Monitoring and Analytics
+
+### Key Metrics
+- Total transactions processed
+- Success/failure rates
+- Average gas usage
+- Fee collection totals
+- Popular contracts and functions
+
+### Available Data
+- Transaction-level details (status, fees, gas usage)
+- Batch-level summaries (success rates, total fees)
+- Contract-level analytics (usage patterns, revenue)
+- System-level statistics (throughput, performance)
+
+## Roadmap
+
+### Phase 3 (Planned)
+- [ ] Cross-chain transaction support
+- [ ] Advanced batch optimization
+- [ ] Machine learning-based fee optimization
+- [ ] Governance token integration
+- [ ] Multi-signature sponsor approval
+
+### Future Enhancements
+- [ ] Mobile SDK integration
+- [ ] Web3 wallet integration
 - [ ] Advanced analytics dashboard
-- [ ] Automatic fee adjustment based on network conditions
-
-## License
-
-MIT License - see LICENSE file for details.
+- [ ] Automated compliance reporting
+- [ ] Enterprise management tools
 
 ## Contributing
 
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
+
+### Development Process
 1. Fork the repository
-2. Create a feature branch
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
 3. Make your changes
-4. Add tests
-5. Submit a pull request
+4. Add comprehensive tests
+5. Run the test suite (`clarinet test`)
+6. Commit your changes (`git commit -m 'Add amazing feature'`)
+7. Push to the branch (`git push origin feature/amazing-feature`)
+8. Open a Pull Request
+
+### Code Standards
+- Follow Clarity best practices
+- Include comprehensive tests for all new features
+- Update documentation for any API changes
+- Use descriptive commit messages
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## Support
 
-For issues and questions:
-- Create an issue on GitHub
-- Join our Discord community
-- Check the documentation wiki
+### Getting Help
+- 📖 [Documentation Wiki](https://github.com/your-org/gas-sponsored-relayer/wiki)
+- 💬 [Discord Community](https://discord.gg/your-discord)
+- 🐛 [Issue Tracker](https://github.com/your-org/gas-sponsored-relayer/issues)
+- 📧 Email: hamsohood@gmail.com
+
+### Reporting Issues
+Please use the GitHub issue tracker to report bugs or request features. Include:
+- Clear description of the issue
+- Steps to reproduce
+- Expected vs actual behavior
+- Clarinet version and system information
+
+---
+
+**Note**: This is a Phase 2 release with significant architectural changes. Please review the migration guide if upgrading from Phase 1.
