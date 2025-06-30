@@ -4,10 +4,11 @@ version = "2.0.0"
 description = "Enhanced gas-sponsored transaction relayer with security improvements and fee management"
 authors = ["Midorichie <hamsohood@gmail.com>"]
 license = "MIT"
-keywords = ["stacks", "clarity", "relayer", "gas", "sponsored"]
+keywords = ["stacks", "clarity", "relayer", "gas", "sponsored", "transaction-processor"]
 
-[contracts.relayer]
-path = "contracts/relayer.clar"
+# Main contracts
+[contracts.transaction-processor]
+path = "contracts/transaction-processor.clar"
 clarity_version = 2
 epoch = "2.5"
 
@@ -16,6 +17,12 @@ path = "contracts/fee-manager.clar"
 clarity_version = 2
 epoch = "2.5"
 
+[contracts.relayer]
+path = "contracts/relayer.clar"
+clarity_version = 2
+epoch = "2.5"
+
+# REPL configuration
 [repl]
 costs_version = 2
 parser_version = 2
@@ -29,7 +36,7 @@ trusted_sender = false
 trusted_caller = false
 callee_filter = true
 
-# Test accounts for development
+# Development accounts with higher balances for testing
 [[repl.accounts]]
 name = "deployer"
 address = "ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM"
@@ -55,7 +62,12 @@ name = "user2"
 address = "ST2NEB84ASENDXKYGJPQW86YXQCEFEX2ZQPG87ND"
 balance = 100000000000000
 
-# Development settings
+[[repl.accounts]]
+name = "admin"
+address = "ST2REHHS5J3CERCRBEPMGH7921Q6PYKAADT7JP2VB"
+balance = 100000000000000
+
+# Requirements
 [project.requirements]
 clarinet = ">=1.7.0"
 
@@ -67,3 +79,10 @@ bitcoin_node_rpc_address = "https://bitcoin.testnet.stacks.co"
 [project.network.mainnet]
 stacks_node_rpc_address = "https://stacks-node-api.mainnet.stacks.co"
 bitcoin_node_rpc_address = "https://bitcoin.mainnet.stacks.co"
+
+# Development settings
+cache_dir = ".cache"
+
+# Test configuration
+[project.test]
+coverage = true
